@@ -1,7 +1,7 @@
 # skinning-suite
-Blender addon for skinning workflows.
+Blender addon for weight paint workflows.
 
-These are some simple operators to deal with vertex selections, and other things that I normally use when skinning assets.
+These are some simple operators to deal with vertex selections, and other things that I normally use when painting weights.
 
 ![header image](docs/header_image.png)
 
