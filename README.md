@@ -3,6 +3,8 @@ Blender addon for skinning workflows.
 
 These are some simple operators to deal with vertex selections, and other things that I normally use when skinning assets.
 
+![header image](docs/header_image.png)
+
 **NOTE: Has not been properly tested in production. Almost definitely has issues lurking within.**
 
 Was mostly a way for me to get my feet wet when it comes to creating handy blender tools.
