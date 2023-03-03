@@ -16,8 +16,8 @@ Thanks to [Daniel Bystedt](https://twitter.com/3dbystedt) for giving me a bunch 
 2. Open Blender Preferences - Add-ons and press "Install...".
 - Find the .zip file and press "Install Add-on"
 
-![blender prefs](docs/install_step_2.png)
+![blender prefs](docs/install_step_1.png)
 
 3. Enable the Add-on and use the buttons in the Select menu, or under the vertex groups
 
-![blender ui](docs/install_step_3.png)
+![blender ui](docs/install_step_2.png)
