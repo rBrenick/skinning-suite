@@ -6,7 +6,7 @@ import bpy
 bl_info = {
     "name": "Skinning Suite",
     "author": "Richard Brenick",
-    "version": (1, 0),
+    "version": (1, 1),
     "blender": (2, 80, 0),
     "location": "Weight Paint - Select",
     "description": "",
@@ -670,21 +670,21 @@ class PasteSelectedVertexWeights(bpy.types.Operator):
 
         # get weight data
         sel_weight_data = {}
-        for vtx in ob.data.vertices: 
+        for vtx_index, vtx in enumerate(ob.data.vertices):        
             if 0:
                 vtx = vtx  # type: bpy.types.MeshVertex
 
             if not vtx.select:
                 continue
             
-            sel_weight_data[vtx] = {}
+            sel_weight_data[vtx_index] = {}
             for grp in vtx.groups:
                 vg_name = ob.vertex_groups[grp.group].name
 
-                sel_weight_data[vtx][vg_name] = grp.weight
+                sel_weight_data[vtx_index][vg_name] = grp.weight
             
             # assign missing vertex groups
-            missing_bones = [b for b in json_bones if b not in sel_weight_data[vtx].keys()]
+            missing_bones = [b for b in json_bones if b not in sel_weight_data[vtx_index].keys()]
             for missing_bone in missing_bones:
                 v_group = ob.vertex_groups.get(missing_bone)
                 if v_group is None:
@@ -705,7 +705,8 @@ class PasteSelectedVertexWeights(bpy.types.Operator):
         ob = context.active_object  # type: bpy.types.Object
 
         # blend in weights
-        for vtx, weight_data in sel_weight_data.items(): 
+        for vtx_index, weight_data in sel_weight_data.items(): 
+            vtx = ob.data.vertices[vtx_index]
             if 0:
                 vtx = vtx  # type: bpy.types.MeshVertex
             
