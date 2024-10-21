@@ -70,6 +70,28 @@ class RemoveUnusedVertexGroups(bpy.types.Operator):
 
         return {"FINISHED"}
 
+
+class TransferVertexGroups(bpy.types.Operator):
+    bl_idname = "paint.skinsuite_transfer_vertex_groups"
+    bl_label = "Transfer Weights"
+    bl_description = "Transfer weights from the active object to all selected"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "margin")
+
+    def execute(self, context):
+        bpy.ops.object.data_transfer(
+            data_type='VGROUP_WEIGHTS',
+            use_create=True,
+            vert_mapping='POLYINTERP_NEAREST',
+            layers_select_src='ALL',
+            layers_select_dst='NAME',
+            mix_mode='REPLACE',
+        )
+        return {"FINISHED"}
+
 """
 class SelectInfluencedVertices(bpy.types.Operator):
     bl_idname = "paint.skinsuite_select_influenced_vertices"
@@ -729,8 +751,11 @@ class RENDER_PT_SkinSuiteVertexGroupTools(bpy.types.Panel):
         copy_paste_row = layout.row()
         copy_paste_row.operator(CopySelectedVertexWeights.bl_idname)
         copy_paste_row.operator(PasteSelectedVertexWeights.bl_idname)
-        layout.operator(RemoveUnusedVertexGroups.bl_idname)
-        layout.operator(RemoveWeightingOnSelected.bl_idname)
+        layout.operator(TransferVertexGroups.bl_idname)
+        layout.separator()
+        remove_row = layout.row()
+        remove_row.operator(RemoveUnusedVertexGroups.bl_idname)
+        remove_row.operator(RemoveWeightingOnSelected.bl_idname)
         layout.operator(LinkArmatureToCurrentScene.bl_idname)
         layout.separator()
         layout.operator(SelectUnNormalizedVertices.bl_idname)
@@ -760,6 +785,7 @@ CLASS_LIST = [
     RemoveUnusedVertexGroups,
     CopySelectedVertexWeights,
     PasteSelectedVertexWeights,
+    TransferVertexGroups,
 ]
 
 
