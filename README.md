@@ -13,7 +13,7 @@ Thanks to [Daniel Bystedt](https://twitter.com/3dbystedt) for giving me a bunch 
 
 # Install
 
-1. Download the latest [skinning_suite .zip file](https://github.com/rBrenick/skinning-suite/releases/download/0.00.01/skinning_suite_0-00-01.zip) from the Releases page
+1. Download the latest [skinning_suite .zip file](https://github.com/rBrenick/skinning-suite/releases/download/0.00.02/skinning_suite_0_00_02.zip) from the Releases page
 
 2. Open Blender Preferences - Add-ons and press "Install..."
 - Find the .zip file and press "Install Add-on"
