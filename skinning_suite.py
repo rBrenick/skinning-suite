@@ -3,24 +3,11 @@ import json
 
 import bpy
 
-bl_info = {
-    "name": "Skinning Suite",
-    "author": "Richard Brenick",
-    "version": (1, 1),
-    "blender": (2, 80, 0),
-    "location": "Weight Paint - Select",
-    "description": "",
-    "warning": "",
-    "doc_url": "",
-    "category": "Rigging",
-}
-
 # sorry mac/linux users
 CLIPBOARD_WEIGHTS_JSON_PATH = r"C:/tmp/blender_skinning_clipboard.json"
 SELECTION_SAVE_JSON = "c:/tmp/saved_selection_blender.json"
 if not os.path.exists(os.path.dirname(SELECTION_SAVE_JSON)):
     os.makedirs(os.path.dirname(SELECTION_SAVE_JSON))
-
 
 
 class RemoveUnusedVertexGroups(bpy.types.Operator):
