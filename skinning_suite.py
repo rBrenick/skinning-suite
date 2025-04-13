@@ -65,82 +65,115 @@ class TransferVertexGroups(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     selected_vertices: bpy.props.BoolProperty(
-        name="Only Selected Vertices", 
+        name="Selected vertices", 
         default=False,
+        description="Only affect selected vertices on the target meshes."
+        )
+    
+    additive: bpy.props.BoolProperty(
+        name="Transfer additive",
+        default=False,
+        description="Keep weights on VertexGroups that only exist on the target meshes. Can lead to trouble with normalization."
         )
 
     def draw(self, context):
         layout = self.layout
         layout.prop(self, "selected_vertices")
+        layout.prop(self, "additive")
 
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
     
     def execute(self, context):
+        
+        # create list of meshes that will get new weights
+        target_meshes = context.selected_objects
+        target_meshes.remove(context.active_object)
+
         if self.selected_vertices:
-            for target_mesh in context.selected_objects:
-                if target_mesh == context.active_object:
-                    continue
-                mesh_copy = self.copy_mesh_and_transfer_skinning(context.active_object, target_mesh)
-                self.transfer_skinning_on_selected_vertices(mesh_copy, target_mesh)
+            for target_mesh in target_meshes:
+                with TempObjectCopy(target_mesh) as mesh_copy:
+                    transfer_skinning(context.active_object, mesh_copy, self.additive)
+                    transfer_skinning_on_selected_vertices(mesh_copy, target_mesh, self.additive)
         else:
-            bpy.ops.object.data_transfer(
-                data_type='VGROUP_WEIGHTS',
-                use_create=True,
-                vert_mapping='POLYINTERP_NEAREST',
-                layers_select_src='ALL',
-                layers_select_dst='NAME',
-                mix_mode='REPLACE',
-            )
+            transfer_skinning(context.active_object, target_meshes, self.additive)
+
         return {"FINISHED"}
+
+
+class TempObjectCopy(object):
+    """ContextManager to deal with linking and unlinking the copy from the scene"""
+    def __init__(self, base_obj):
+        self.base_obj = base_obj
+        self.copy = None
+
+    def __enter__(self):
+        self.copy = self.base_obj.copy()
+        self.copy.data = self.base_obj.data.copy()
+        bpy.context.scene.collection.objects.link(self.copy)
+        return self.copy
     
-    def transfer_skinning_on_selected_vertices(self, src_mesh, tgt_mesh):
-        """copy vertex_groups by vert index"""
+    def __exit__(self, type, value, traceback):
+        if self.copy:
+            bpy.context.scene.collection.objects.unlink(self.copy)
 
-        # ensure all vertex groups exist
-        for src_group in src_mesh.vertex_groups:
-            tgt_group = tgt_mesh.vertex_groups.get(src_group.name)
-            if not tgt_group:
-                tgt_group = tgt_mesh.vertex_groups.new(name=src_group.name)
 
-        for i, tgt_vtx in enumerate(tgt_mesh.data.vertices):
+def transfer_skinning(src_mesh, target_meshes, additive=False):
 
-            # skip unselected vertices
-            if not tgt_vtx.select:
-                continue
+    if not isinstance(target_meshes, list):
+        target_meshes = [target_meshes]
 
-            src_vtx = src_mesh.data.vertices[i]
+    if not additive:
+        # remove existing vertex groups
+        for target_mesh in target_meshes:
+            for vg in target_mesh.vertex_groups:
+                target_mesh.vertex_groups.remove(vg)
 
-            for src_group_element in src_vtx.groups:
-                group_name = src_mesh.vertex_groups[src_group_element.group].name
-                tgt_group = tgt_mesh.vertex_groups[group_name]
+    tmp_override = bpy.context.copy()
+    tmp_override["active_object"] = src_mesh
+    tmp_override["selected_objects"] = target_meshes
+    tmp_override["selected_editable_objects"] = target_meshes
+    
+    with bpy.context.temp_override(**tmp_override):
+        bpy.ops.object.data_transfer(
+            data_type='VGROUP_WEIGHTS',
+            use_create=True,
+            vert_mapping='POLYINTERP_NEAREST',
+            layers_select_src='ALL',
+            layers_select_dst='NAME',
+            mix_mode='REPLACE',
+        )
 
-                # set weight on target mesh vert
-                tgt_group.add([tgt_vtx.index], src_group_element.weight, 'REPLACE')
 
-    def copy_mesh_and_transfer_skinning(self, src_mesh, target_mesh):         
-        mesh_copy = target_mesh.copy()
-        mesh_copy.data = target_mesh.data.copy()
-        bpy.context.scene.collection.objects.link(mesh_copy)
+def transfer_skinning_on_selected_vertices(src_mesh, tgt_mesh, additive=False):
+    """copy vertex_groups by vert index"""
 
-        tmp_override = bpy.context.copy()
-        tmp_override["active_object"] = src_mesh
-        tmp_override["selected_objects"] = [mesh_copy]
-        tmp_override["selected_editable_objects"] = [mesh_copy]
-            
-        with bpy.context.temp_override(**tmp_override):
-            bpy.ops.object.data_transfer(
-                data_type='VGROUP_WEIGHTS',
-                use_create=True,
-                vert_mapping='POLYINTERP_NEAREST',
-                layers_select_src='ALL',
-                layers_select_dst='NAME',
-                mix_mode='REPLACE',
-            )
+    # ensure all vertex groups exist
+    for src_group in src_mesh.vertex_groups:
+        tgt_group = tgt_mesh.vertex_groups.get(src_group.name)
+        if not tgt_group:
+            tgt_group = tgt_mesh.vertex_groups.new(name=src_group.name)
+
+    for i, tgt_vtx in enumerate(tgt_mesh.data.vertices):
+
+        # skip unselected vertices
+        if not tgt_vtx.select:
+            continue
         
-        bpy.context.scene.collection.objects.unlink(mesh_copy)
-        
-        return mesh_copy
+        if not additive:
+            # discard existing weighting
+            for tgt_vtx_grp in tgt_vtx.groups:
+                tgt_vtx_grp.weight = 0.0
+
+        src_vtx = src_mesh.data.vertices[i]
+
+        for src_group_element in src_vtx.groups:
+            group_name = src_mesh.vertex_groups[src_group_element.group].name
+            tgt_group = tgt_mesh.vertex_groups[group_name]
+
+            # set weight on target mesh vert
+            tgt_group.add([tgt_vtx.index], src_group_element.weight, 'REPLACE')
+
 
 """
 class SelectInfluencedVertices(bpy.types.Operator):
